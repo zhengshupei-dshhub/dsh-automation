@@ -1,0 +1,31 @@
+{
+  "$comment": "DSH 定时自动化任务清单。新增/修改任务时同步更新。",
+  "updatedAt": "2026-11-01",
+  "automations": [
+    {
+      "id": "workbuddy-checkin",
+      "title": "WorkBuddy 每日签到 + 礼包领取",
+      "kind": "script",
+      "schedule": { "type": "daily", "time": "09:10:00", "timeZone": "Asia/Shanghai" },
+      "entry": "workbuddy-checkin/checkin.mjs",
+      "command": "node ~/DeepSeekHarness/dsh-automation/workbuddy-checkin/checkin.mjs",
+      "log": "~/.dsh/workbuddy-checkin.log",
+      "requires": ["dsh-connect-workbuddy", "WorkBuddy 已登录"],
+      "failureMode": "找不到 DSH 端点时退出码 1 并说明应用未运行或插件未启用"
+    },
+    {
+      "id": "self-evolution",
+      "title": "空闲自我进化",
+      "kind": "prompt",
+      "schedule": { "type": "daily", "time": "22:00:00", "timeZone": "Asia/Shanghai" },
+      "entry": "self-evolution/prompt.md",
+      "requires": ["dsh-memory"],
+      "guardrails": [
+        "一次最多推进一项",
+        "不碰 profile 配置/权限，不删数据，不花钱",
+        "改完必须 selfcheck 全绿",
+        "没有值得做的就只看台账并说明原因"
+      ]
+    }
+  ]
+}
