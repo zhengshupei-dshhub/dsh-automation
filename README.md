@@ -10,6 +10,7 @@
 |---|---|---|---|---|
 | **WorkBuddy 每日签到 + 礼包** | 每天 09:10 | 脚本驱动 | `dsh-connect-workbuddy` 插件、WorkBuddy 已登录 | [`workbuddy-checkin/`](workbuddy-checkin/) |
 | **空闲自我进化** | 每天 22:00 | 提示词驱动 | `dsh-memory` 插件（演化台账 + 工具） | [`self-evolution/`](self-evolution/) |
+| **记忆数据每日备份** | 每天 23:50 | 脚本驱动 | `dsh-memory`、私有仓库 [dsh-memory-data](https://github.com/zhengshupei-dshhub/dsh-memory-data) | [`memory-backup/`](memory-backup/) |
 
 机器可读清单见 [`automations.json`](automations.json)。
 
@@ -33,6 +34,18 @@ node checkin.mjs --json   # 机器可读
 每天 22:00 让 agent 自己推进一项改进：看演化台账 → 挑一项 → 改 → 跑自检 → 记账 → 提交。规则写死在提示词里（一次一项、不碰权限、不花钱、没值得做的就明说）。
 
 完整提示词见 [`self-evolution/prompt.md`](self-evolution/prompt.md)。
+
+## 记忆数据每日备份
+
+把 `~/.dsh/memory` 里的记忆、人设、演化台账推到**私有仓库** [dsh-memory-data](https://github.com/zhengshupei-dshhub/dsh-memory-data)，保留完整历史，恢复靠 `git clone`。
+
+```bash
+node memory-backup/backup.mjs          # 有变化才提交推送
+```
+
+- 只备份四类数据文件，不含密钥与运行时游标
+- 无变化时不提交；提交信息带计数（记忆 N 条 / 日记 M 篇）
+- 细节与恢复步骤见 [`memory-backup/README.md`](memory-backup/README.md)
 
 ---
 

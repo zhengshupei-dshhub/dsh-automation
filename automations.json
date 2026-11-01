@@ -27,5 +27,17 @@
         "没有值得做的就只看台账并说明原因"
       ]
     }
+    {
+      "id": "memory-backup",
+      "title": "记忆数据每日备份",
+      "kind": "script",
+      "schedule": { "type": "daily", "time": "23:50:00", "timeZone": "Asia/Shanghai" },
+      "entry": "memory-backup/backup.mjs",
+      "command": "node ~/DeepSeekHarness/dsh-automation/memory-backup/backup.mjs",
+      "target": "https://github.com/zhengshupei-dshhub/dsh-memory-data (private)",
+      "backupDir": "~/DeepSeekHarness/dsh-memory-data",
+      "requires": ["gh 已登录（git credential helper）"],
+      "failureMode": "无变化时不提交；推送失败时退出码 1 并报错"
+    }
   ]
 }
