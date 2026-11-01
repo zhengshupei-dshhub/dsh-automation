@@ -93,7 +93,9 @@ function main() {
   }
 
   const { memories = 0, diary = 0 } = counts()
-  const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16)
+  const now = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
   git(['commit', '-m', `backup: ${stamp}（记忆 ${memories} 条 / 日记 ${diary} 篇）`])
   git(['push', 'origin', 'HEAD:main'])
 
