@@ -41,4 +41,4 @@ schedule_create({
 ## 前提
 
 - 私有仓库已存在，且本机 gh 已登录（git 走 gh 的 credential helper）
-- 需要代理才能 push：`export HTTPS_PROXY=http://127.0.0.1:7897`（git 已配全局代理，pnpm 才需要环境变量）
+- push 走 SSH（`~/.ssh/config` 里 github.com → ssh.github.com:443）；本机已配好，无需代理

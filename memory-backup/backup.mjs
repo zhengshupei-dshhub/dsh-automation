@@ -16,7 +16,7 @@ import path from 'node:path'
 
 const SRC = path.join(os.homedir(), '.dsh', 'memory')
 const REPO = process.env.DSH_MEMORY_BACKUP_DIR || path.join(os.homedir(), 'DeepSeekHarness', 'dsh-memory-data')
-const REMOTE = 'https://github.com/zhengshupei-dshhub/dsh-memory-data.git'
+const REMOTE = 'git@github.com:zhengshupei-dshhub/dsh-memory-data.git'
 const FILES = [
   'memories.json',
   'persona.json',
