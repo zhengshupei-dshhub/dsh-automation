@@ -1,43 +1,80 @@
 {
   "$comment": "DSH 定时自动化任务清单。新增/修改任务时同步更新。",
-  "updatedAt": "2026-11-01",
+  "updatedAt": "2026-11-04",
   "automations": [
     {
       "id": "workbuddy-checkin",
       "title": "WorkBuddy 每日签到 + 礼包领取",
       "kind": "script",
-      "schedule": { "type": "daily", "time": "09:10:00", "timeZone": "Asia/Shanghai" },
+      "schedule": {
+        "type": "daily",
+        "time": "09:10:00",
+        "timeZone": "Asia/Shanghai"
+      },
       "entry": "workbuddy-checkin/checkin.mjs",
       "command": "node ~/DeepSeekHarness/dsh-automation/workbuddy-checkin/checkin.mjs",
       "log": "~/.dsh/workbuddy-checkin.log",
-      "requires": ["dsh-connect-workbuddy", "WorkBuddy 已登录"],
+      "requires": [
+        "dsh-connect-workbuddy",
+        "WorkBuddy 已登录"
+      ],
       "failureMode": "找不到 DSH 端点时退出码 1 并说明应用未运行或插件未启用"
     },
     {
       "id": "self-evolution",
       "title": "空闲自我进化",
       "kind": "prompt",
-      "schedule": { "type": "daily", "time": "22:00:00", "timeZone": "Asia/Shanghai" },
+      "schedule": {
+        "type": "daily",
+        "time": "22:00:00",
+        "timeZone": "Asia/Shanghai"
+      },
       "entry": "self-evolution/prompt.md",
-      "requires": ["dsh-memory"],
+      "requires": [
+        "dsh-memory"
+      ],
       "guardrails": [
         "一次最多推进一项",
         "不碰 profile 配置/权限，不删数据，不花钱",
         "改完必须 selfcheck 全绿",
         "没有值得做的就只看台账并说明原因"
       ]
-    }
+    },
     {
       "id": "memory-backup",
       "title": "记忆数据每日备份",
       "kind": "script",
-      "schedule": { "type": "daily", "time": "23:50:00", "timeZone": "Asia/Shanghai" },
+      "schedule": {
+        "type": "daily",
+        "time": "23:50:00",
+        "timeZone": "Asia/Shanghai"
+      },
       "entry": "memory-backup/backup.mjs",
       "command": "node ~/DeepSeekHarness/dsh-automation/memory-backup/backup.mjs",
       "target": "https://github.com/zhengshupei-dshhub/dsh-memory-data (private)",
       "backupDir": "~/DeepSeekHarness/dsh-memory-data",
-      "requires": ["gh 已登录（git credential helper）"],
+      "requires": [
+        "gh 已登录（git credential helper）"
+      ],
       "failureMode": "无变化时不提交；推送失败时退出码 1 并报错"
+    },
+    {
+      "id": "plugin-update",
+      "title": "插件版本同步 + 重启 DSH",
+      "kind": "script",
+      "schedule": {
+        "type": "daily",
+        "time": "04:00:00",
+        "timeZone": "Asia/Shanghai"
+      },
+      "entry": "plugin-update/sync.mjs",
+      "command": "node ~/DeepSeekHarness/dsh-automation/plugin-update/sync.mjs --apply --restart",
+      "log": "~/DeepSeekHarness/dsh-automation/plugin-update/last-run.log",
+      "requires": [
+        "本机插件源码目录在 ~/DeepSeekHarness/"
+      ],
+      "failureMode": "重装失败时退出码 1 且不重启；无更新时什么都不做",
+      "notes": "凌晨执行，避开使用时段；重启会中断当时正在跑的会话"
     }
   ]
 }

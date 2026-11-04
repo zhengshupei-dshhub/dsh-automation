@@ -10,7 +10,20 @@
 |---|---|---|---|---|
 | **WorkBuddy 每日签到 + 礼包** | 每天 09:10 | 脚本驱动 | `dsh-connect-workbuddy` 插件、WorkBuddy 已登录 | [`workbuddy-checkin/`](workbuddy-checkin/) |
 | **空闲自我进化** | 每天 22:00 | 提示词驱动 | `dsh-memory` 插件（演化台账 + 工具） | [`self-evolution/`](self-evolution/) |
+| **插件版本同步 + 重启** | 每天 04:00 | 脚本驱动 | 本机插件源码在 `~/DeepSeekHarness/` | [`plugin-update/`](plugin-update/) |
 | **记忆数据每日备份** | 每天 23:50 | 脚本驱动 | `dsh-memory`、私有仓库 [dsh-memory-data](https://github.com/zhengshupei-dshhub/dsh-memory-data) | [`memory-backup/`](memory-backup/) |
+
+## 插件版本同步 + 重启
+
+源码目录比 profile 里装的新时（比如改了 `~/DeepSeekHarness/dsh-dafeiyu` 却没重装），自动打包重装并重启 DSH。默认干跑只报计划，`--apply` 才动手，`--restart` 顺带重启。
+
+```bash
+node plugin-update/sync.mjs                    # 只看差异
+node plugin-update/sync.mjs --apply            # 重装，但不重启
+node plugin-update/sync.mjs --apply --restart  # 重装并重启（凌晨任务用的组合）
+```
+
+> 重启会中断当时正在跑的会话，所以放在 04:00。
 
 机器可读清单见 [`automations.json`](automations.json)。
 
