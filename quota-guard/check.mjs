@@ -19,6 +19,10 @@ import fsMod from 'node:fs'
 import osMod from 'node:os'
 import pathMod from 'node:path'
 
+const fs = fsMod
+const os = osMod
+const path = pathMod
+
 const WARN_5H = Number(process.env.QUOTA_WARN_5H ?? 85)
 const WARN_WEEK = Number(process.env.QUOTA_WARN_WEEK ?? 80)
 const PACK_MIN = Number(process.env.QUOTA_PACK_MIN ?? 20)
