@@ -145,11 +145,31 @@ function checkRouterTargets() {
 
 const routerCheck = safe(checkRouterTargets, { targets: [] })
 
+
+// WorkBuddy 剩余积分：路由的最后一档（积分制，不动账户余额）。
+let workbuddyCredits
+try {
+  const portOut = execFileSync('lsof', ['-nP', '-iTCP', '-sTCP:LISTEN'], { encoding: 'utf8', timeout: 15_000 })
+  const line = portOut.split('\n').find((l) => /DeepSeek/i.test(l))
+  const port = (line?.match(/127\.0\.0\.1:(\d+)/) ?? [])[1]
+  if (port) {
+    const body = execFileSync(
+      'curl',
+      ['-s', '-m', '10', `http://127.0.0.1:${port}/plugins/dsh-connect-workbuddy/usage?region=cn&detail=full`],
+      { encoding: 'utf8', timeout: 20_000 },
+    )
+    const usage = JSON.parse(body)
+    const credits = usage?.credits?.total
+    if (typeof credits === 'number') workbuddyCredits = Number(credits.toFixed(2))
+  }
+} catch {}
+
 const summary = {
   checkedAt: new Date().toISOString(),
   planPeriods: periods,
   packs,
   routerTargets: routerCheck?.targets ?? [],
+  workbuddyCredits,
   alerts,
 }
 
