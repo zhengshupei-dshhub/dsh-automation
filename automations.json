@@ -75,6 +75,26 @@
       ],
       "failureMode": "重装失败时退出码 1 且不重启；无更新时什么都不做",
       "notes": "凌晨执行，避开使用时段；重启会中断当时正在跑的会话"
+    },
+    {
+      "id": "quota-guard",
+      "title": "火山额度与资源包余量巡检",
+      "kind": "script",
+      "schedule": {
+        "type": "daily",
+        "time": "09:00:00",
+        "timeZone": "Asia/Shanghai"
+      },
+      "secondRun": {
+        "time": "21:00:00"
+      },
+      "entry": "quota-guard/check.mjs",
+      "command": "node ~/DeepSeekHarness/dsh-automation/quota-guard/check.mjs",
+      "output": "~/.dsh/quota-snapshot.json（供模型路由判断包余量）",
+      "requires": [
+        "arkcli 已 SSO 登录"
+      ],
+      "failureMode": "SSO 过期时报警并提示 arkcli auth login volc-sso"
     }
   ]
 }
