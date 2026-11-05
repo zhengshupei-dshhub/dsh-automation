@@ -15,6 +15,9 @@
  */
 
 import { execFileSync } from 'node:child_process'
+import fsMod from 'node:fs'
+import osMod from 'node:os'
+import pathMod from 'node:path'
 
 const WARN_5H = Number(process.env.QUOTA_WARN_5H ?? 85)
 const WARN_WEEK = Number(process.env.QUOTA_WARN_WEEK ?? 80)
@@ -67,18 +70,87 @@ for (const item of quota?.items ?? []) {
 }
 if (quota?.error) alerts.push(`查不到资源包：${quota.error}`)
 
+
+// ── 路由目标自检：确认「开局选模型」插件指向的每个模型都还在 provider 列表里。
+// 依赖：~/.dsh/profiles/desktop/cordis.patch.yml（Ark 两个 provider），
+// 以及 WorkBuddy 的模型缓存（由 dsh-connect-workbuddy 维护）。
+function checkRouterTargets() {
+  const fs = fsMod
+  const os = osMod
+  const path = pathMod
+  const results = []
+
+  const routerSrc = path.join(os.homedir(), 'DeepSeekHarness', 'dsh-model-router', 'index.js')
+  let text
+  try {
+    text = fs.readFileSync(routerSrc, 'utf8')
+  } catch {
+    return { ok: false, reason: '找不到路由插件源码', targets: [] }
+  }
+
+  const rules = []
+  const re = /id: '([a-z-]+)',[\s\S]*?provider: '([a-z-]+)',\s*\n\s*model: '([^']+)'/g
+  let m
+  while ((m = re.exec(text)) !== null) rules.push({ rule: m[1], provider: m[2], model: m[3] })
+  const def = text.match(/default: \{ provider: '([a-z-]+)', model: '([^']+)' \}/)
+  if (def) rules.push({ rule: 'default', provider: def[1], model: def[2] })
+
+  // Ark provider 列表：用 python3 解析 YAML（缩进随 dump 变化，别再自己写行解析）
+  const providers = {}
+  try {
+    const cfgPath = path.join(os.homedir(), '.dsh', 'profiles', 'desktop', 'cordis.patch.yml')
+    const out = execFileSync(
+      'python3',
+      ['-c', 'import yaml,json,sys;print(json.dumps(yaml.safe_load(open(sys.argv[1]))))', cfgPath],
+      { encoding: 'utf8', timeout: 20_000 },
+    )
+    const doc = JSON.parse(out)
+    for (const row of doc) {
+      if (row?.id !== 'llm-pi-ai') continue
+      for (const [name, prov] of Object.entries(row.config?.providers ?? {})) {
+        providers[name] = (prov.models ?? []).map((m) => m.id)
+      }
+    }
+  } catch (error) {
+    alerts.push(`读不到 provider 配置：${error?.message ?? error}`)
+  }
+
+  // WorkBuddy 模型：读插件缓存
+  let workbuddyIds = new Set()
+  for (const f of ['.workbuddy-pool.cn.json', '.workbuddy-roster-seen.cn.json']) {
+    try {
+      const raw = fs.readFileSync(path.join(os.homedir(), '.dsh', f), 'utf8')
+      for (const hit of raw.match(/"hy3[a-z0-9._-]*"/gi) ?? []) workbuddyIds.add(hit.replace(/"/g, ''))
+      for (const hit of raw.match(/"wb-[a-z0-9-]+"/gi) ?? []) workbuddyIds.add(hit.replace(/"/g, ''))
+    } catch {}
+  }
+
+  for (const t of rules) {
+    let ok
+    if (t.provider === 'workbuddy' || t.provider === 'workbuddy-global') {
+      ok = workbuddyIds.size ? workbuddyIds.has(t.model) : undefined
+    } else {
+      const list = providers[t.provider]
+      ok = list ? list.includes(t.model) : false
+    }
+    results.push({ ...t, ok })
+    if (ok === false) alerts.push(`路由目标失效：${t.rule} → ${t.provider}/${t.model} 不在可用列表里`)
+  }
+  return { ok: results.every((r) => r.ok !== false), targets: results }
+}
+
+const routerCheck = safe(checkRouterTargets, { targets: [] })
+
 const summary = {
   checkedAt: new Date().toISOString(),
   planPeriods: periods,
   packs,
+  routerTargets: routerCheck?.targets ?? [],
   alerts,
 }
 
 // 落一份快照，给模型路由插件判断「这个包还有没有余量」。
 try {
-  const fs = await import('node:fs')
-  const os = await import('node:os')
-  const path = await import('node:path')
   const file = path.join(os.homedir(), '.dsh', 'quota-snapshot.json')
   fs.writeFileSync(file, JSON.stringify(summary, null, 2))
 } catch {}
@@ -101,6 +173,14 @@ if (JSON_OUT) {
   for (const p of low) console.log(`  ⚠ ${p.model.padEnd(30)} ${String(p.remaining).padStart(9)} / ${p.total} (${p.percent}%)`)
   const totalRemaining = packs.reduce((s, p) => s + p.remaining, 0)
   console.log(`  合计剩余 ${totalRemaining.toLocaleString()}（${packs.length} 个包）`)
+
+  console.log('')
+  console.log('== 路由目标 ==')
+  const targets = routerCheck?.targets ?? []
+  if (!targets.length) console.log('  （未检查）')
+  for (const t of targets) {
+    console.log(`  ${t.ok === false ? '✗' : t.ok === undefined ? '?' : '✓'} ${String(t.rule).padEnd(10)} ${t.provider}/${t.model}`)
+  }
 
   console.log('')
   if (alerts.length) {
