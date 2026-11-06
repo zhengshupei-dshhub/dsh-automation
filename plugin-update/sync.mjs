@@ -32,7 +32,8 @@ const LOG_FILE = path.join(LOG_DIR, 'last-run.log')
 const PLUGINS = [
   { name: 'dsh-memory', repo: path.join(HOME, 'DeepSeekHarness', 'dsh-memory') },
   { name: 'dsh-dafeiyu', repo: path.join(HOME, 'DeepSeekHarness', 'dsh-dafeiyu') },
-  { name: 'dsh-doubao', repo: path.join(HOME, 'DeepSeekHarness', 'dsh-doubao') },
+  // dsh-doubao 已废弃（平台 API key 被删、工具全部 401），2026-11-06 从同步清单移除，
+  // 避免 04:00 自动同步又把它装回来。
 ]
 
 function readJson(file) {
