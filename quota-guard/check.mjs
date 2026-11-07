@@ -149,29 +149,6 @@ function checkRouterTargets() {
 const routerCheck = safe(checkRouterTargets, { targets: [] })
 
 
-// 平台端点是否被拦住（欠费/未开通时，包里有额度也调不通）。
-// 用一个最小请求探一次，记录 packBlocked，路由据此直接跳过免费包。
-let packBlocked = false
-let packProbeError
-try {
-  const keyFile = path.join(os.homedir(), '.dsh', 'doubao.json')
-  const apiKey = JSON.parse(fs.readFileSync(keyFile, 'utf8')).apiKey
-  const body = JSON.stringify({ model: 'deepseek-v4-1-flash-261017', messages: [{ role: 'user', content: 'hi' }], max_tokens: 1 })
-  const out = execFileSync(
-    'curl',
-    ['-s', '-m', '20', '-X', 'POST', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
-      '-H', `Authorization: Bearer ${apiKey}`, '-H', 'Content-Type: application/json', '-d', body],
-    { encoding: 'utf8', timeout: 30_000 },
-  )
-  const parsed = JSON.parse(out)
-  if (parsed?.error) {
-    packBlocked = true
-    packProbeError = `${parsed.error.code}: ${String(parsed.error.message).slice(0, 80)}`
-  }
-} catch (error) {
-  packProbeError = String(error?.message ?? error).slice(0, 120)
-}
-
 // WorkBuddy 剩余积分：路由的最后一档（积分制，不动账户余额）。
 let workbuddyCredits
 try {
@@ -189,8 +166,6 @@ try {
     if (typeof credits === 'number') workbuddyCredits = Number(credits.toFixed(2))
   }
 } catch {}
-
-if (packBlocked) alerts.push(`平台端点被拦住（资源包暂时用不了）：${packProbeError}`)
 
 // 桌面端 Host 认证 cookie 累积计数（只读，不退出应用）。见 deepseek-harness#12502。
 let authCookies = 0
@@ -214,8 +189,6 @@ const summary = {
   packs,
   routerTargets: routerCheck?.targets ?? [],
   workbuddyCredits,
-  packBlocked,
-  packProbeError,
   authCookies,
   alerts,
 }
@@ -244,10 +217,6 @@ if (JSON_OUT) {
   for (const p of low) console.log(`  ⚠ ${p.model.padEnd(30)} ${String(p.remaining).padStart(9)} / ${p.total} (${p.percent}%)`)
   const totalRemaining = packs.reduce((s, p) => s + p.remaining, 0)
   console.log(`  合计剩余 ${totalRemaining.toLocaleString()}（${packs.length} 个包）`)
-
-  console.log('')
-  console.log('== 平台端点 ==')
-  console.log(packBlocked ? `  ✗ 被拦住：${packProbeError}` : '  ✓ 正常（资源包可用）')
 
   console.log('')
   console.log('== 路由目标 ==')
