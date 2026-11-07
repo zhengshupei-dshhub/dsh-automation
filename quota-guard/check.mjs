@@ -26,6 +26,9 @@ const path = pathMod
 const WARN_5H = Number(process.env.QUOTA_WARN_5H ?? 85)
 const WARN_WEEK = Number(process.env.QUOTA_WARN_WEEK ?? 80)
 const PACK_MIN = Number(process.env.QUOTA_PACK_MIN ?? 20)
+// dsh-auth-* cookie 累积到 ~70 个会让 Cookie 头超 16KiB → Host 431 → 桌面端启动崩溃（见
+// deepseek-harness#12502）。只读计数，到阈值提醒用户退出应用后清一次。
+const COOKIE_WARN = Number(process.env.QUOTA_COOKIE_WARN ?? 40)
 const JSON_OUT = process.argv.includes('--json')
 const STRICT = process.argv.includes('--strict')
 
@@ -189,6 +192,22 @@ try {
 
 if (packBlocked) alerts.push(`平台端点被拦住（资源包暂时用不了）：${packProbeError}`)
 
+// 桌面端 Host 认证 cookie 累积计数（只读，不退出应用）。见 deepseek-harness#12502。
+let authCookies = 0
+const cookiesDb = path.join(os.homedir(), 'Library', 'Application Support', '@deepseek-ai', 'dsh-desktop', 'Cookies')
+try {
+  const out = execFileSync(
+    'sqlite3',
+    [cookiesDb, "select count(*) from cookies where name like 'dsh-auth-%';"],
+    { encoding: 'utf8', timeout: 15_000 },
+  )
+  const n = Number(String(out).trim())
+  if (Number.isFinite(n)) authCookies = n
+} catch {}
+if (authCookies >= COOKIE_WARN) {
+  alerts.push(`dsh-auth cookie 已累积 ${authCookies} 个（阈值 ${COOKIE_WARN}），接近 431 崩溃线；退出应用后运行 sqlite3 清一次（见讨论帖 #12502）`)
+}
+
 const summary = {
   checkedAt: new Date().toISOString(),
   planPeriods: periods,
@@ -197,6 +216,7 @@ const summary = {
   workbuddyCredits,
   packBlocked,
   packProbeError,
+  authCookies,
   alerts,
 }
 
@@ -236,6 +256,11 @@ if (JSON_OUT) {
   for (const t of targets) {
     console.log(`  ${t.ok === false ? '✗' : t.ok === undefined ? '?' : '✓'} ${String(t.rule).padEnd(10)} ${t.provider}/${t.model}`)
   }
+
+  console.log('')
+  console.log('== dsh-auth cookie ==')
+  const flag = authCookies >= COOKIE_WARN ? ' ⚠' : ''
+  console.log(`  ${authCookies} 个${authCookies >= COOKIE_WARN ? `（阈值 ${COOKIE_WARN}）` : ''}${flag}`)
 
   console.log('')
   if (alerts.length) {
