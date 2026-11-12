@@ -122,20 +122,10 @@ function checkRouterTargets() {
     alerts.push(`读不到 provider 配置：${error?.message ?? error}`)
   }
 
-  // WorkBuddy 模型：读插件缓存
-  let workbuddyIds = new Set()
-  for (const f of ['.workbuddy-pool.cn.json', '.workbuddy-roster-seen.cn.json']) {
-    try {
-      const raw = fs.readFileSync(path.join(os.homedir(), '.dsh', f), 'utf8')
-      for (const hit of raw.match(/"hy3[a-z0-9._-]*"/gi) ?? []) workbuddyIds.add(hit.replace(/"/g, ''))
-      for (const hit of raw.match(/"wb-[a-z0-9-]+"/gi) ?? []) workbuddyIds.add(hit.replace(/"/g, ''))
-    } catch {}
-  }
-
   for (const t of rules) {
     let ok
     if (t.provider === 'workbuddy' || t.provider === 'workbuddy-global') {
-      ok = workbuddyIds.size ? workbuddyIds.has(t.model) : undefined
+      ok = false // WorkBuddy 已卸载，不再探测
     } else {
       const list = providers[t.provider]
       ok = list ? list.includes(t.model) : false
@@ -147,25 +137,6 @@ function checkRouterTargets() {
 }
 
 const routerCheck = safe(checkRouterTargets, { targets: [] })
-
-
-// WorkBuddy 剩余积分：路由的最后一档（积分制，不动账户余额）。
-let workbuddyCredits
-try {
-  const portOut = execFileSync('lsof', ['-nP', '-iTCP', '-sTCP:LISTEN'], { encoding: 'utf8', timeout: 15_000 })
-  const line = portOut.split('\n').find((l) => /DeepSeek/i.test(l))
-  const port = (line?.match(/127\.0\.0\.1:(\d+)/) ?? [])[1]
-  if (port) {
-    const body = execFileSync(
-      'curl',
-      ['-s', '-m', '10', `http://127.0.0.1:${port}/plugins/dsh-connect-workbuddy/usage?region=cn&detail=full`],
-      { encoding: 'utf8', timeout: 20_000 },
-    )
-    const usage = JSON.parse(body)
-    const credits = usage?.credits?.total
-    if (typeof credits === 'number') workbuddyCredits = Number(credits.toFixed(2))
-  }
-} catch {}
 
 // 桌面端 Host 认证 cookie 累积计数（只读，不退出应用）。见 deepseek-harness#12502。
 let authCookies = 0
@@ -188,7 +159,6 @@ const summary = {
   planPeriods: periods,
   packs,
   routerTargets: routerCheck?.targets ?? [],
-  workbuddyCredits,
   authCookies,
   alerts,
 }

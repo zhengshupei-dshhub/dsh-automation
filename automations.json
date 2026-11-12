@@ -3,24 +3,6 @@
   "updatedAt": "2026-11-04",
   "automations": [
     {
-      "id": "workbuddy-checkin",
-      "title": "WorkBuddy 每日签到 + 礼包领取",
-      "kind": "script",
-      "schedule": {
-        "type": "daily",
-        "time": "09:10:00",
-        "timeZone": "Asia/Shanghai"
-      },
-      "entry": "workbuddy-checkin/checkin.mjs",
-      "command": "node ~/DeepSeekHarness/dsh-automation/workbuddy-checkin/checkin.mjs",
-      "log": "~/.dsh/workbuddy-checkin.log",
-      "requires": [
-        "dsh-connect-workbuddy",
-        "WorkBuddy 已登录"
-      ],
-      "failureMode": "找不到 DSH 端点时退出码 1 并说明应用未运行或插件未启用"
-    },
-    {
       "id": "self-evolution",
       "title": "空闲自我进化",
       "kind": "prompt",
