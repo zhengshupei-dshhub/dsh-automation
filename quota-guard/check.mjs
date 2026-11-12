@@ -47,6 +47,26 @@ function safe(fn, fallback) {
 
 const alerts = []
 
+// SSO 过期检测：arkcli 报 refresh_token invalid / Volcengine Ark SSO STS 时，
+// 换成一句可操作告警，而不是把几百字 JSON 甩给用户。约 3 天过期一次（11-07/11-10/11-12 已三次）。
+const SSO_EXPIRED_RE = /refresh_token is invalid|requires Volcengine Ark SSO STS|STS 续期失败/i
+let ssoAlerted = false
+function friendlyAuthError(raw) {
+  if (SSO_EXPIRED_RE.test(String(raw ?? ''))) {
+    return 'arkcli SSO 已过期（refresh_token 约 3 天失效）：arkcli auth login volc-sso --no-browser 重新授权后恢复'
+  }
+  return null
+}
+// 套餐/资源包同时过期时只报一条 SSO 告警，不重复刷屏。
+function pushQueryError(raw, fallback) {
+  const friendly = friendlyAuthError(raw)
+  if (friendly) {
+    if (!ssoAlerted) { alerts.push(friendly); ssoAlerted = true }
+    return
+  }
+  alerts.push(fallback)
+}
+
 const plan = safe(() => arkcli(['usage', 'plan', '--format', 'json']))
 const periods = []
 if (plan?.items) {
@@ -59,7 +79,7 @@ if (plan?.items) {
     }
   }
 } else if (plan?.error) {
-  alerts.push(`查不到套餐额度：${plan.error}`)
+  pushQueryError(plan.error, `查不到套餐额度：${plan.error}`)
 }
 
 const packs = []
@@ -75,7 +95,7 @@ for (const item of quota?.items ?? []) {
     alerts.push(`资源包 ${item.model} 只剩 ${percent}%（阈值 ${PACK_MIN}%）`)
   }
 }
-if (quota?.error) alerts.push(`查不到资源包：${quota.error}`)
+if (quota?.error) pushQueryError(quota.error, `查不到资源包：${quota.error}`)
 
 
 // ── 路由目标自检：确认「开局选模型」插件指向的每个模型都还在 provider 列表里。
